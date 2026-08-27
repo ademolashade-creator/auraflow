@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Morning Flow</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ff3366">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Aura">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body id="body-element">
+
+    <header>
+        <h1 class="editable-title" contenteditable="true" id="app-title" onblur="saveAppName(this.textContent)">Aura Morning Flow</h1>
+        <p>1 Hour 20 Minutes to Punctuality, Precision, and Control.</p>
+
+        <div class="clocks-bar">
+            <div class="clock-item"><div class="clock-label">Date</div><div id="clock-date">--/--/----</div></div>
+            <div class="clock-item"><div class="clock-label">WAT</div><div id="clock-wat">--:--:--</div></div>
+            <div class="clock-item"><div class="clock-label">EST</div><div id="clock-est">--:--:--</div></div>
+            <div class="clock-item"><div class="clock-label">MST</div><div id="clock-mst">--:--:--</div></div>
+        </div>
+
+        <div class="top-controls">
+            <button class="btn-secondary" onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+
+        <div class="card">
+            <h2>⏱️ Emergency Morning Chain</h2>
+            <div class="timer-active-display">
+                <div class="current-task-title" id="active-task-name">Ready to Engage</div>
+                <div class="timer-countdown" id="active-countdown">80:00</div>
+                <div class="timer-controls">
+                    <button class="btn-primary" id="start-pause-btn" onclick="toggleTimer()">Engage Flow</button>
+                    <button class="btn-secondary" onclick="skipStep()">Skip ➔</button>
+                </div>
+            </div>
+
+            <div style="font-size: 0.75rem; color: #888; margin-bottom: 6px; font-weight: 700;">EDITABLE ROUTINE STEPS (Auto-Balancing):</div>
+            <ul class="routine-list" id="routine-list"></ul>
+
+            <div class="add-row">
+                <input type="text" id="new-task-name" class="add-input" placeholder="Add new morning task...">
+                <input type="number" id="new-task-dur" class="routine-duration-input" value="5" min="1" max="30" title="Duration">
+                <button class="add-btn" onclick="addNewTask()">＋</button>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="urgency-card">
+                <div class="urgency-title">🚨 Goal: Out by 7:50 AM · Latest 7:55 AM</div>
+                <div class="urgency-stat" id="urgency-status-text">Routine remaining: 80 mins</div>
+            </div>
+
+            <div class="transit-banner" id="transit-banner">
+                <div style="font-weight: 700; font-size: 1.05rem;" id="transit-title">Ready to leave?</div>
+                <div style="font-size: 0.85rem; opacity: 0.9;" id="transit-sub">10-minute walk to the office — hit this when you lock the door and step out.</div>
+                <button class="transit-btn" onclick="startTransitMode()">🚶‍♀️ I am Walking to Work</button>
+            </div>
+
+            <div class="card">
+                <h2>🚪 Threshold Timebox</h2>
+                <div class="door-container">
+                    <button class="door-btn" onclick="logDeparture()">🚪 I Crossed the Threshold Now</button>
+                    <div class="info-box" id="door-result-box">No departure logged yet today. Let's conquer the clock.</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🌙 Night-Before Anti-ADHD Protocol</h2>
+                <ul class="check-list" id="checklist-container"></ul>
+                <div class="add-row">
+                    <input type="text" id="new-check-name" class="add-input" placeholder="Add night prep item...">
+                    <button class="add-btn" onclick="addNewCheck()">＋</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🧠 Adaptive ADHD Brain Engine</h2>
+            <div class="info-box" id="adaptive-hacks">Analyzing your current morning parameters...</div>
+        </div>
+
+        <div class="card">
+            <h2>🤖 AI Coaching Tip (Gemini)</h2>
+            <div class="ai-tip-box" id="ai-tip-box">Click below for a personalized tip based on your routine and recent departure times.</div>
+            <div class="add-row">
+                <button class="add-btn" style="flex:1;" onclick="getAiTip()">Get AI Coaching Tip</button>
+                <button class="btn-secondary" onclick="resetGeminiKey()">Clear Key</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📈 Punctuality History & Trends</h2>
+            <div class="trends-box" id="trends-log">Loading history records...</div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            });
+        }
+    </script>
+</body>
+</html>

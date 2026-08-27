@@ -1,0 +1,115 @@
+:root {
+    --bg-color: #ffffff;
+    --card-bg: #fff0f3;
+    --text-color: #2b2b2b;
+    --primary-pink: #ffb3c6;
+    --cherry-red: #ff3366;
+    --cherry-hover: #e02454;
+    --amber: #e08a00;
+    --border-color: #ffccd5;
+    --shadow: 0 10px 30px rgba(255, 51, 102, 0.08);
+    --input-bg: #ffffff;
+    --alert-bg: #ffe6eb;
+}
+
+body.dark-mode {
+    --bg-color: #121214;
+    --card-bg: #1e1b20;
+    --text-color: #f1f1f5;
+    --primary-pink: #522533;
+    --cherry-red: #ff4d79;
+    --cherry-hover: #ff1a53;
+    --amber: #ffb347;
+    --border-color: #3b2830;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    --input-bg: #2a262c;
+    --alert-bg: #2d1f24;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Quicksand', -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+header { text-align: center; margin-bottom: 1.5rem; max-width: 850px; width: 100%; }
+
+.editable-title {
+    font-size: 2.2rem; color: var(--cherry-red); margin: 0 0 0.3rem 0;
+    letter-spacing: -0.5px; border-bottom: 2px dashed transparent; outline: none; cursor: pointer;
+}
+.editable-title:hover { border-bottom-color: var(--cherry-red); }
+
+.clocks-bar {
+    display: flex; justify-content: center; gap: 1.5rem; background: var(--card-bg);
+    padding: 0.6rem 1.2rem; border-radius: 14px; border: 2px solid var(--border-color);
+    margin-top: 1rem; flex-wrap: wrap; font-size: 0.85rem;
+}
+.clock-item { text-align: center; }
+.clock-label { font-weight: 700; color: var(--cherry-red); font-size: 0.7rem; text-transform: uppercase; }
+
+.top-controls { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
+
+.dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; width: 100%; max-width: 950px; }
+@media (min-width: 768px) { .dashboard-grid { grid-template-columns: 1fr 1fr; } }
+
+.card {
+    background-color: var(--card-bg); border: 2px solid var(--border-color); border-radius: 24px;
+    padding: 1.8rem; box-shadow: var(--shadow); display: flex; flex-direction: column;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+h2 { font-size: 1.15rem; color: var(--cherry-red); margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+
+.timer-active-display {
+    text-align: center; background: var(--input-bg); padding: 1.5rem; border-radius: 18px;
+    border: 2px solid var(--border-color); margin-bottom: 1.2rem;
+}
+.current-task-title { font-size: 1.1rem; font-weight: 700; color: var(--cherry-red); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.timer-countdown { font-size: 3.5rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 0.8rem; }
+.timer-controls { display: flex; gap: 10px; justify-content: center; }
+
+button { font-family: 'Quicksand', -apple-system, sans-serif; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; padding: 0.6rem 1rem; transition: all 0.2s ease; }
+button:active { transform: scale(0.96); }
+.btn-primary { background-color: var(--cherry-red); color: white; flex: 1; }
+.btn-primary:hover { background-color: var(--cherry-hover); }
+.btn-secondary { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); }
+
+.urgency-card { background: var(--alert-bg); border: 2px solid var(--cherry-red); border-radius: 18px; padding: 1.2rem; text-align: center; margin-bottom: 1.5rem; }
+.urgency-title { font-weight: 700; font-size: 0.9rem; color: var(--cherry-red); text-transform: uppercase; margin-bottom: 4px; }
+.urgency-stat { font-size: 1.1rem; font-weight: 700; }
+
+.routine-list, .check-list { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.routine-item, .check-list-item { display: flex; align-items: center; justify-content: space-between; background: var(--input-bg); padding: 0.6rem 0.8rem; border-radius: 12px; border: 1px solid var(--border-color); font-size: 0.85rem; gap: 6px; }
+.routine-item.active { border-color: var(--cherry-red); box-shadow: 0 0 10px rgba(255, 51, 102, 0.2); }
+.routine-item.completed { opacity: 0.5; text-decoration: line-through; }
+
+.task-name-input { flex: 1; background: transparent; border: none; font-family: 'Quicksand', sans-serif; font-weight: 600; color: var(--text-color); font-size: 0.85rem; outline: none; }
+.routine-duration-input { width: 40px; padding: 3px; font-family: 'Quicksand', sans-serif; font-weight: 700; text-align: center; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-color); }
+
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 0.9rem; color: #888; padding: 2px 4px; }
+.icon-btn:hover { color: var(--cherry-red); }
+
+.add-row { display: flex; gap: 6px; margin-top: 5px; }
+.add-input { flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 10px; background: var(--input-bg); color: var(--text-color); font-family: 'Quicksand', sans-serif; font-size: 0.85rem; outline: none; }
+.add-btn { background-color: var(--cherry-red); color: white; padding: 0.5rem 1rem; border-radius: 10px; }
+
+.transit-banner { background: linear-gradient(135deg, var(--cherry-red), #ff758c); color: white; padding: 1.2rem; border-radius: 18px; text-align: center; margin-bottom: 1.5rem; }
+.transit-btn { background: white; color: var(--cherry-red); font-weight: 700; margin-top: 8px; padding: 0.6rem 1.2rem; border-radius: 10px; }
+
+.door-container { display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.door-btn { background-color: var(--cherry-red); color: white; font-size: 1rem; padding: 0.9rem; border-radius: 14px; }
+
+.info-box { font-size: 0.85rem; line-height: 1.5; background: var(--input-bg); padding: 1rem; border-radius: 14px; border: 1px solid var(--border-color); }
+.trends-box { font-size: 0.85rem; background: var(--input-bg); padding: 1rem; border-radius: 14px; border: 1px solid var(--border-color); max-height: 130px; overflow-y: auto; }
+
+.ai-tip-box { font-size: 0.85rem; line-height: 1.5; background: var(--input-bg); padding: 1rem; border-radius: 14px; border: 1px solid var(--border-color); margin-top: 10px; min-height: 20px; }
