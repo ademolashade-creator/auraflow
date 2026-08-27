@@ -431,7 +431,7 @@ async function getAiTip() {
     const prompt_text = `You are a supportive ADHD-friendly morning coach. My routine totals ${getTotalRoutineDuration()} minutes, goal is out the door by 7:50 AM (7:55 AM latest buffer). My last 5 logged departure times: ${recentExits}. In 2-3 short sentences, give me one specific, encouraging, actionable tip to improve my morning flow. No generic filler.`;
 
     try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt_text }] }] })
