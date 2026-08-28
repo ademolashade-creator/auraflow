@@ -44,11 +44,17 @@
                 </div>
             </div>
 
-            <div class="add-row" style="margin-bottom:6px;">
-                <input type="password" id="gemini-api-key-input" class="add-input" placeholder="Gemini API key (stored locally)..." oninput="saveApiKey(this.value)">
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+                <label style="font-size:0.8rem; opacity:0.9; flex:1;">Occasion <input type="text" id="occasion-input" value="the office" style="width:100%;box-sizing:border-box;" onchange="updateDestination(this.value)"></label>
             </div>
-            <button class="btn-secondary" style="width:100%;margin-bottom:8px;" onclick="suggestAiRoutine()">🤖 AI-Suggest Routine for This Occasion</button>
+            <button class="btn-secondary" style="width:100%;margin-bottom:6px;" onclick="suggestAiRoutine()">🤖 AI-Suggest Routine for This Occasion</button>
             <div id="ai-routine-preview" style="display:none;margin-bottom:10px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:10px;padding:10px;"></div>
+            <details style="margin-bottom:10px;">
+                <summary style="font-size:0.75rem;color:#888;cursor:pointer;">AI settings (Gemini API key)</summary>
+                <div class="add-row" style="margin-top:6px;">
+                    <input type="password" id="gemini-api-key-input" class="add-input" placeholder="Gemini API key (stored locally)..." oninput="saveApiKey(this.value)">
+                </div>
+            </details>
 
             <div style="font-size: 0.75rem; color: #888; margin-bottom: 6px; font-weight: 700; display:flex; justify-content:space-between; align-items:center;">
                 <span>EDITABLE ROUTINE STEPS (Auto-Balancing):</span>

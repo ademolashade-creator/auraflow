@@ -526,9 +526,13 @@ function refreshDestinationLabels() {
     const sub = $('transit-sub');
     const actionBtn = $('transit-action-btn');
     const arrivalBtn = $('arrival-btn');
+    const destInput = $('destination-input');
+    const occasionInput = $('occasion-input');
     if (sub && !isTransitMode) sub.textContent = `${getWalkMinutes()}-minute walk to ${dest} — hit this when you lock the door and step out.`;
     if (actionBtn) actionBtn.textContent = `🚶‍♀️ I am Walking to ${dest}`;
     if (arrivalBtn) arrivalBtn.textContent = `🏁 I've Arrived at ${dest}`;
+    if (destInput) destInput.value = dest;
+    if (occasionInput) occasionInput.value = dest;
 }
 
 function updateWalkMinutes(newVal) {
@@ -659,8 +663,6 @@ function initApp() {
     const walkInput = $('walk-minutes-input');
     const walkMinutes = getWalkMinutes();
     if (walkInput) walkInput.value = walkMinutes;
-    const destInput = $('destination-input');
-    if (destInput) destInput.value = getDestination();
     refreshDestinationLabels();
 
     const apiKeyInput = $('gemini-api-key-input');
