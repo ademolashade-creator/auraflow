@@ -157,7 +157,22 @@ function renderRoutine() {
     }
     const budgetInput = $('total-budget-input');
     if (budgetInput) budgetInput.value = getTotalRoutineDuration();
+    updateSubtitle();
     updateAdaptiveHacks();
+}
+
+function formatDurationHM(totalMinutes) {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const parts = [];
+    if (h > 0) parts.push(`${h} Hour${h !== 1 ? 's' : ''}`);
+    if (m > 0 || h === 0) parts.push(`${m} Minute${m !== 1 ? 's' : ''}`);
+    return parts.join(' ');
+}
+
+function updateSubtitle() {
+    const sub = $('app-subtitle');
+    if (sub) sub.textContent = `${formatDurationHM(getTotalRoutineDuration())} to Punctuality, Precision, and Control.`;
 }
 
 function updateTotalBudget(newTotalStr) {
@@ -396,7 +411,7 @@ function parseTimeToDateToday(hhmm) {
 
 function updateTimeTargetsLabel() {
     const label = $('urgency-title-text');
-    if (label) label.textContent = `Goal: Out by ${formatDisplayTime(timeTargets.goal)} \u00b7 Latest ${formatDisplayTime(timeTargets.latest)}`;
+    if (label) label.textContent = `🚨 Goal: Out by ${formatDisplayTime(timeTargets.goal)} · Latest ${formatDisplayTime(timeTargets.latest)}`;
 }
 
 function updateTimeTargets() {
@@ -438,7 +453,7 @@ function updateUrgencyBanner() {
     } else if (projectedExit <= latestTime) {
         statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color:var(--amber);">${exitTimeStr}</span> (In your buffer \u2014 still fine.)`;
     } else {
-        statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color: var(--cherry-red);">${exitTimeStr}</span> (\u26a0\ufe0f Past your latest time!)`;
+        statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color: var(--cherry-red);">${exitTimeStr}</span> (⚠️ Past ${formatDisplayTime(timeTargets.latest)}!)`;
     }
 }
 
@@ -535,7 +550,7 @@ function startTransitMode() {
     clearInterval(timerInterval);
     isRunning = false;
     if (startPauseBtn) startPauseBtn.textContent = 'Start Transit';
-    if (activeTaskName) activeTaskName.textContent = `🚶‍♀️ Transit Mode: Walking to ${getDestination()}`;
+    if (activeTaskName) activeTaskName.textContent = `🚦 Transit Mode: Heading to ${getDestination()}`;
     timeLeft = getWalkMinutes() * 60;
     updateDisplay();
     const banner = $('transit-banner'), title = $('transit-title'), sub = $('transit-sub');
@@ -566,8 +581,8 @@ function refreshDestinationLabels() {
     const arrivalBtn = $('arrival-btn');
     const destInput = $('destination-input');
     const occasionInput = $('occasion-input');
-    if (sub && !isTransitMode) sub.textContent = `${getWalkMinutes()}-minute walk to ${dest} — hit this when you lock the door and step out.`;
-    if (actionBtn) actionBtn.textContent = `🚶‍♀️ I am Walking to ${dest}`;
+    if (sub && !isTransitMode) sub.textContent = `${getWalkMinutes()}-minute transit to ${dest} — hit this when you lock the door and step out.`;
+    if (actionBtn) actionBtn.textContent = `🚦 Start Transit to ${dest}`;
     if (arrivalBtn) arrivalBtn.textContent = `🏁 I've Arrived at ${dest}`;
     if (destInput) destInput.value = dest;
     if (occasionInput) occasionInput.value = dest;
@@ -583,8 +598,9 @@ function updateAdaptiveHacks() {
     const hacksBox = $('adaptive-hacks');
     if (!hacksBox) return;
     const totalDuration = getTotalRoutineDuration();
+    const bufferMin = Math.round((parseTimeToDateToday(timeTargets.latest) - parseTimeToDateToday(timeTargets.goal)) / 60000);
     hacksBox.innerHTML = `<ul>
-        <li><strong>Active Sequence Load:</strong> <strong>${totalDuration} minutes</strong> scheduled. Goal is out the door by 7:50 AM, with a 5-minute buffer to 7:55 AM latest.</li>
+        <li><strong>Active Sequence Load:</strong> <strong>${totalDuration} minutes</strong> scheduled. Goal is out the door by ${formatDisplayTime(timeTargets.goal)}, with a ${Math.abs(bufferMin)}-minute buffer to ${formatDisplayTime(timeTargets.latest)} latest.</li>
         <li>📱 <strong>Phone Window:</strong> You have a dedicated 10-minute slot for messages and social media right after stretching. Do not bleed past it!</li>
         <li><strong>Hyperfocus Guard:</strong> Never sit on your bed once your 5-minute wake-up stretch is done. Gravity will trap you.</li>
     </ul>`;

@@ -17,7 +17,7 @@
 
     <header>
         <h1 class="editable-title" contenteditable="true" id="app-title" onblur="saveAppName(this.textContent)">Aura Morning Flow</h1>
-        <p>1 Hour 20 Minutes to Punctuality, Precision, and Control.</p>
+        <p id="app-subtitle">1 Hour 20 Minutes to Punctuality, Precision, and Control.</p>
 
         <div class="clocks-bar">
             <div class="clock-item">
@@ -39,7 +39,7 @@
     <div class="dashboard-grid">
 
         <div class="card">
-            <h2>⏱️ Emergency Morning Chain</h2>
+            <h2>⏱️ Your Routine Flow</h2>
             <div class="timer-active-display">
                 <div class="current-task-title" id="active-task-name">Ready to Engage</div>
                 <div class="timer-countdown" id="active-countdown">80:00</div>
@@ -86,12 +86,12 @@
 
             <div class="transit-banner" id="transit-banner">
                 <div style="font-weight: 700; font-size: 1.05rem;" id="transit-title">Ready to leave?</div>
-                <div style="font-size: 0.85rem; opacity: 0.9;" id="transit-sub">10-minute walk to the office — hit this when you lock the door and step out.</div>
+                <div style="font-size: 0.85rem; opacity: 0.9;" id="transit-sub">10-minute transit to the office — hit this when you lock the door and step out.</div>
                 <div style="display:flex; gap:6px; justify-content:center; align-items:center; margin:6px 0; font-size:0.8rem; flex-wrap:wrap;">
                     <label style="opacity:0.9;">Going to <input type="text" id="destination-input" value="the office" style="width:110px;text-align:center;" onchange="updateDestination(this.value)"></label>
-                    <label style="opacity:0.9;">Walk time <input type="number" id="walk-minutes-input" min="1" max="120" value="10" style="width:50px;text-align:center;" onchange="updateWalkMinutes(this.value)"> min</label>
+                    <label style="opacity:0.9;">Transit time <input type="number" id="walk-minutes-input" min="1" max="120" value="10" style="width:50px;text-align:center;" onchange="updateWalkMinutes(this.value)"> min</label>
                 </div>
-                <button class="transit-btn" id="transit-action-btn" onclick="startTransitMode()">🚶‍♀️ I am Walking to the office</button>
+                <button class="transit-btn" id="transit-action-btn" onclick="startTransitMode()">🚦 Start Transit to the office</button>
             </div>
 
             <div class="card">
