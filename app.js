@@ -55,6 +55,10 @@ let timerInterval = null;
 
 // ---------- Element lookups (may be null depending on which page loaded this script) ----------
 const $ = (id) => document.getElementById(id);
+
+function escapeHTML(str) {
+    return String(str).replace(/[&<>'"]/g, (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+}
 const activeTaskName = $('active-task-name');
 const activeCountdown = $('active-countdown');
 const startPauseBtn = $('start-pause-btn');
@@ -139,17 +143,84 @@ function updateTotalBudget(newTotalStr) {
     }
     if (currentTotal === 0) return;
 
-    let assigned = 0;
-    routine.forEach((step, i) => {
-        if (i === routine.length - 1) {
-            step.duration = Math.max(1, newTotal - assigned);
-        } else {
-            const scaled = Math.max(1, Math.round((step.duration / currentTotal) * newTotal));
-            step.duration = scaled;
-            assigned += scaled;
-        }
-    });
     saveAndReRender();
+}
+
+// ---------- AI-suggested routine (Gemini) ----------
+function saveApiKey(key) { storageSet('gemini_api_key', key); }
+
+let pendingAiRoutine = null;
+
+async function suggestAiRoutine() {
+    const apiKey = storageGet('gemini_api_key', null);
+    const box = $('ai-routine-preview');
+    if (!apiKey) { alert('Add your Gemini API key above first.'); return; }
+
+    const occasion = getDestination();
+    const budget = parseInt($('total-budget-input').value) || getTotalRoutineDuration();
+    const currentNames = routine.map((r) => r.name).join(', ');
+
+    box.style.display = 'block';
+    box.innerHTML = 'Thinking...';
+
+    const promptText = `You are helping build a realistic getting-ready routine.
+Occasion: "${occasion}"
+Total time budget: ${budget} minutes
+Current routine steps (for reference): ${currentNames}
+
+Produce a practical, realistic list of routine steps for this occasion that fits within the total time budget. If the occasion is ordinary (like an office day), reuse or lightly adapt the current steps where they still make sense, only adding new ones if genuinely useful. If the occasion is something like a date, interview, event, or trip, include occasion-specific preparation tasks in addition to normal necessities (for an interview: reviewing talking points, preparing documents, professional grooming; for a date: grooming, outfit choice, fragrance, mental preparation; adapt sensibly to whatever occasion is given). Give each step a short name, with a fitting emoji at the start if natural, and a realistic number of minutes. The total across all steps should add up to approximately the given budget.
+
+Respond with ONLY a JSON array, no other text, in exactly this form: [{"name": "🌅 Wake Up & Stretch", "duration": 5}]`;
+
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+        });
+        if (!res.ok) {
+            box.textContent = `Couldn't reach Gemini (${res.status}). Check your API key.`;
+            return;
+        }
+        const data = await res.json();
+        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const cleaned = raw.replace(/```json|```/g, '').trim();
+        const suggested = JSON.parse(cleaned).filter((s) => s.name && s.duration > 0);
+        if (suggested.length === 0) { box.textContent = 'No suggestion returned — try again.'; return; }
+        pendingAiRoutine = suggested;
+        renderAiRoutinePreview();
+    } catch (e) {
+        box.textContent = 'Something went wrong generating a suggestion. Try again.';
+    }
+}
+
+function renderAiRoutinePreview() {
+    const box = $('ai-routine-preview');
+    if (!pendingAiRoutine) { box.style.display = 'none'; return; }
+    const total = pendingAiRoutine.reduce((a, s) => a + s.duration, 0);
+    box.innerHTML = `
+        <div style="font-size:0.8rem;margin-bottom:6px;">Suggested for "${escapeHTML(getDestination())}" (${total} min total). Nothing is applied yet:</div>
+        <ul class="routine-list" style="max-height:220px;">
+            ${pendingAiRoutine.map((s) => `<li class="routine-item">${escapeHTML(s.name)} — ${s.duration}m</li>`).join('')}
+        </ul>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="add-btn" style="flex:1;" onclick="applyAiRoutine()">Apply This Routine</button>
+            <button class="btn-secondary" onclick="dismissAiRoutine()">Cancel</button>
+        </div>
+    `;
+}
+
+function applyAiRoutine() {
+    if (!pendingAiRoutine) return;
+    routine = pendingAiRoutine.map((s) => ({ name: s.name, duration: Math.max(1, Math.round(s.duration)) }));
+    pendingAiRoutine = null;
+    saveAndReRender();
+    $('ai-routine-preview').style.display = 'none';
+}
+
+function dismissAiRoutine() {
+    pendingAiRoutine = null;
+    $('ai-routine-preview').style.display = 'none';
 }
 
 function renderChecks() {
@@ -591,6 +662,9 @@ function initApp() {
     const destInput = $('destination-input');
     if (destInput) destInput.value = getDestination();
     refreshDestinationLabels();
+
+    const apiKeyInput = $('gemini-api-key-input');
+    if (apiKeyInput) apiKeyInput.value = storageGet('gemini_api_key', '');
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
