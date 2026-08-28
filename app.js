@@ -426,14 +426,44 @@ function startTransitMode() {
     clearInterval(timerInterval);
     isRunning = false;
     if (startPauseBtn) startPauseBtn.textContent = 'Start Transit';
-    if (activeTaskName) activeTaskName.textContent = "🚶‍♀️ Transit Mode: Walking to Work";
-    timeLeft = 10 * 60;
+    if (activeTaskName) activeTaskName.textContent = `🚶‍♀️ Transit Mode: Walking to ${getDestination()}`;
+    timeLeft = getWalkMinutes() * 60;
     updateDisplay();
     const banner = $('transit-banner'), title = $('transit-title'), sub = $('transit-sub');
     if (banner) banner.style.background = 'var(--text-color)';
     if (title) title.textContent = "Transit Timer Active ⏱️";
     if (sub) sub.textContent = "Pacing yourself to arrive on time.";
     renderRoutine();
+}
+
+function getWalkMinutes() {
+    return parseInt(storageGet('aura-walk-minutes', 10)) || 10;
+}
+
+function getDestination() {
+    return storageGet('aura-destination', 'the office');
+}
+
+function updateDestination(newVal) {
+    const dest = (newVal || '').trim() || 'the office';
+    storageSet('aura-destination', dest);
+    refreshDestinationLabels();
+}
+
+function refreshDestinationLabels() {
+    const dest = getDestination();
+    const sub = $('transit-sub');
+    const actionBtn = $('transit-action-btn');
+    const arrivalBtn = $('arrival-btn');
+    if (sub && !isTransitMode) sub.textContent = `${getWalkMinutes()}-minute walk to ${dest} — hit this when you lock the door and step out.`;
+    if (actionBtn) actionBtn.textContent = `🚶‍♀️ I am Walking to ${dest}`;
+    if (arrivalBtn) arrivalBtn.textContent = `🏁 I've Arrived at ${dest}`;
+}
+
+function updateWalkMinutes(newVal) {
+    const minutes = Math.max(1, parseInt(newVal) || 10);
+    storageSet('aura-walk-minutes', minutes);
+    refreshDestinationLabels();
 }
 
 function updateAdaptiveHacks() {
@@ -487,8 +517,9 @@ function renderTrends() {
     }
     logBox.innerHTML = historyLog.map((h) => {
         if (h.arriveTime) {
-            const diff = h.transitMinutes - 10;
-            const diffLabel = diff <= 0 ? `${Math.abs(diff)} min under your 10-min estimate` : `${diff} min over your 10-min estimate`;
+            const estimate = getWalkMinutes();
+            const diff = h.transitMinutes - estimate;
+            const diffLabel = diff <= 0 ? `${Math.abs(diff)} min under your ${estimate}-min estimate` : `${diff} min over your ${estimate}-min estimate`;
             return `<div>📅 <strong>${h.date}</strong> — Left ${h.departTime}, arrived ${h.arriveTime} (${h.transitMinutes} min, ${diffLabel})</div>`;
         }
         return `<div>📅 <strong>${h.date}</strong> — Left ${h.departTime} <em>(transit in progress)</em></div>`;
@@ -553,6 +584,13 @@ function initApp() {
     if (goalInput) goalInput.value = timeTargets.goal;
     if (latestInput) latestInput.value = timeTargets.latest;
     updateTimeTargetsLabel();
+
+    const walkInput = $('walk-minutes-input');
+    const walkMinutes = getWalkMinutes();
+    if (walkInput) walkInput.value = walkMinutes;
+    const destInput = $('destination-input');
+    if (destInput) destInput.value = getDestination();
+    refreshDestinationLabels();
 }
 
 document.addEventListener('DOMContentLoaded', initApp);

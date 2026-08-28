@@ -70,14 +70,18 @@
             <div class="transit-banner" id="transit-banner">
                 <div style="font-weight: 700; font-size: 1.05rem;" id="transit-title">Ready to leave?</div>
                 <div style="font-size: 0.85rem; opacity: 0.9;" id="transit-sub">10-minute walk to the office — hit this when you lock the door and step out.</div>
-                <button class="transit-btn" onclick="startTransitMode()">🚶‍♀️ I am Walking to Work</button>
+                <div style="display:flex; gap:6px; justify-content:center; align-items:center; margin:6px 0; font-size:0.8rem; flex-wrap:wrap;">
+                    <label style="opacity:0.9;">Going to <input type="text" id="destination-input" value="the office" style="width:110px;text-align:center;" onchange="updateDestination(this.value)"></label>
+                    <label style="opacity:0.9;">Walk time <input type="number" id="walk-minutes-input" min="1" max="120" value="10" style="width:50px;text-align:center;" onchange="updateWalkMinutes(this.value)"> min</label>
+                </div>
+                <button class="transit-btn" id="transit-action-btn" onclick="startTransitMode()">🚶‍♀️ I am Walking to the office</button>
             </div>
 
             <div class="card">
                 <h2>🚪 Threshold Timebox</h2>
                 <div class="door-container">
                     <button class="door-btn" onclick="logDeparture()">🚪 I Crossed the Threshold Now</button>
-                    <button class="door-btn" style="background:var(--text-color);" onclick="logArrival()">🏁 I've Arrived at the Office</button>
+                    <button class="door-btn" style="background:var(--text-color);" id="arrival-btn" onclick="logArrival()">🏁 I've Arrived at the office</button>
                     <div class="info-box" id="door-result-box">No departure logged yet today. Let's conquer the clock.</div>
                 </div>
             </div>
