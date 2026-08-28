@@ -20,10 +20,15 @@
         <p>1 Hour 20 Minutes to Punctuality, Precision, and Control.</p>
 
         <div class="clocks-bar">
-            <div class="clock-item"><div class="clock-label">Date</div><div id="clock-date">--/--/----</div></div>
-            <div class="clock-item"><div class="clock-label">WAT</div><div id="clock-wat">--:--:--</div></div>
-            <div class="clock-item"><div class="clock-label">EST</div><div id="clock-est">--:--:--</div></div>
-            <div class="clock-item"><div class="clock-label">MST</div><div id="clock-mst">--:--:--</div></div>
+            <div class="clock-item">
+                <div class="clock-label">Date & Time</div>
+                <div id="clock-date" style="font-weight:800;">--/--/----</div>
+                <div id="clock-time" style="font-weight:800;font-size:1.15rem;">--:--:--</div>
+            </div>
+            <div class="clock-item">
+                <div class="clock-label">Timezone</div>
+                <select id="aura-timezone-select" onchange="updateAuraTimezone(this.value)" style="margin-top:4px;max-width:180px;"></select>
+            </div>
         </div>
 
         <div class="top-controls">
@@ -125,6 +130,20 @@
         <div class="card">
             <h2>📈 Punctuality History & Trends</h2>
             <div class="trends-box" id="trends-log">Loading history records...</div>
+        </div>
+
+        <div class="card">
+            <h2>🎯 Patterns by Occasion</h2>
+            <div class="info-box" id="occasion-patterns-box">Log a few arrivals to see your average transit time by occasion.</div>
+        </div>
+
+        <div class="card">
+            <h2>💾 Backup Your Data</h2>
+            <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">Everything lives only in this browser. Export a copy so a cleared browser or a switch to a new device doesn't lose it.</p>
+            <div style="display:flex;gap:8px;">
+                <button class="add-btn" style="flex:1;" onclick="exportAllDataJSON()">Export All Data (JSON)</button>
+                <button class="btn-secondary" style="flex:1;" onclick="exportHistoryCSV()">Export History (CSV)</button>
+            </div>
         </div>
 
     </div>

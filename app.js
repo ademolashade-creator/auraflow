@@ -41,9 +41,11 @@ const defaultChecks = [
 let appSettings = storageGet('app-settings', { appName: 'Aura Morning Flow', darkMode: false });
 let routine = storageGet('routine', defaultRoutine);
 let nightChecks = storageGet('night-checks', defaultChecks);
-let historyLog = storageGet('departure-history', []).map((h) => (
-    h.departTime !== undefined ? h : { date: h.date, departTime: h.time, departTimestamp: null, arriveTime: null, transitMinutes: null }
-));
+let historyLog = storageGet('departure-history', []).map((h) => {
+    const migrated = h.departTime !== undefined ? h : { date: h.date, departTime: h.time, departTimestamp: null, arriveTime: null, transitMinutes: null };
+    if (migrated.destination === undefined) migrated.destination = 'the office';
+    return migrated;
+});
 let timeTargets = storageGet('aura-time-targets', { goal: '07:50', latest: '07:55' });
 
 let isEngaged = false;
@@ -92,13 +94,38 @@ function toggleDarkMode() {
     storageSet('app-settings', appSettings);
 }
 
+function getAuraTimezone() {
+    return storageGet('aura-timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
+}
+
+function updateAuraTimezone(tz) {
+    storageSet('aura-timezone', tz);
+    updateClocks();
+}
+
+function populateAuraTimezoneSelect() {
+    const sel = $('aura-timezone-select');
+    if (!sel) return;
+    let zones;
+    try { zones = Intl.supportedValuesOf('timeZone'); }
+    catch (e) { zones = ['UTC', 'Africa/Lagos', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai', 'Australia/Sydney']; }
+    const current = getAuraTimezone();
+    sel.innerHTML = zones.map((z) => `<option value="${z}" ${z === current ? 'selected' : ''}>${z}</option>`).join('');
+}
+
+function formatDateDDMMYYYY(date, tz) {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(date);
+    const map = {};
+    parts.forEach((p) => { map[p.type] = p.value; });
+    return `${map.day}/${map.month}/${map.year}`;
+}
+
 function updateClocks() {
     const now = new Date();
-    const dateEl = $('clock-date'), watEl = $('clock-wat'), estEl = $('clock-est'), mstEl = $('clock-mst');
-    if (dateEl) dateEl.textContent = now.toLocaleDateString();
-    if (watEl) watEl.textContent = now.toLocaleTimeString('en-US', { timeZone: 'Africa/Lagos', hour12: true });
-    if (estEl) estEl.textContent = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: true });
-    if (mstEl) mstEl.textContent = now.toLocaleTimeString('en-US', { timeZone: 'America/Denver', hour12: true });
+    const tz = getAuraTimezone();
+    const dateEl = $('clock-date'), timeEl = $('clock-time');
+    if (dateEl) dateEl.textContent = formatDateDDMMYYYY(now, tz);
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString('en-US', { timeZone: tz, hour12: true });
     updateUrgencyBanner();
 }
 
@@ -142,6 +169,17 @@ function updateTotalBudget(newTotalStr) {
         return;
     }
     if (currentTotal === 0) return;
+
+    let assigned = 0;
+    routine.forEach((step, i) => {
+        if (i === routine.length - 1) {
+            step.duration = Math.max(1, newTotal - assigned);
+        } else {
+            const scaled = Math.max(1, Math.round((step.duration / currentTotal) * newTotal));
+            step.duration = scaled;
+            assigned += scaled;
+        }
+    });
 
     saveAndReRender();
 }
@@ -559,13 +597,15 @@ function logDeparture() {
         departTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         departTimestamp: now.getTime(),
         arriveTime: null,
-        transitMinutes: null
+        transitMinutes: null,
+        destination: getDestination()
     });
     if (historyLog.length > 10) historyLog.pop();
     storageSet('departure-history', historyLog);
     const box = $('door-result-box');
     if (box) box.textContent = `🚪 Threshold crossed at ${historyLog[0].departTime}. Logged and secured!`;
     renderTrends();
+    renderOccasionPatterns();
 }
 
 function logArrival() {
@@ -581,6 +621,65 @@ function logArrival() {
     storageSet('departure-history', historyLog);
     if (box) box.textContent = `🏁 Arrived at ${openEntry.arriveTime} \u2014 ${openEntry.transitMinutes} min transit.`;
     renderTrends();
+    renderOccasionPatterns();
+}
+
+function renderOccasionPatterns() {
+    const box = $('occasion-patterns-box');
+    if (!box) return;
+    const completedTrips = historyLog.filter((h) => h.arriveTime && h.transitMinutes);
+    if (completedTrips.length === 0) {
+        box.innerHTML = '<p style="font-size:0.8rem;color:#888;">Log a few arrivals to see your average transit time by occasion.</p>';
+        return;
+    }
+
+    const groups = {};
+    completedTrips.forEach((h) => {
+        const dest = h.destination || 'the office';
+        if (!groups[dest]) groups[dest] = { total: 0, count: 0 };
+        groups[dest].total += h.transitMinutes;
+        groups[dest].count += 1;
+    });
+
+    box.innerHTML = Object.keys(groups).map((dest) => {
+        const avg = Math.round(groups[dest].total / groups[dest].count);
+        const trips = groups[dest].count;
+        return `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${escapeHTML(dest)}</span><span><strong>${avg} min</strong> avg (${trips} trip${trips > 1 ? 's' : ''})</span></div>`;
+    }).join('');
+}
+
+// ---------- Export data ----------
+function downloadBlob(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function exportAllDataJSON() {
+    const data = {
+        exportedAt: new Date().toISOString(),
+        appSettings, routine, nightChecks, historyLog, timeTargets,
+        destination: getDestination(), walkMinutes: getWalkMinutes()
+    };
+    downloadBlob(JSON.stringify(data, null, 2), `aura-export-${getTodayKeyAura()}.json`, 'application/json');
+}
+
+function exportHistoryCSV() {
+    const rows = [['Date', 'Destination', 'Departed', 'Arrived', 'Transit (min)']];
+    historyLog.forEach((h) => rows.push([h.date, h.destination || '', h.departTime || '', h.arriveTime || '', h.transitMinutes || '']));
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    downloadBlob(csv, `aura-history-${getTodayKeyAura()}.csv`, 'text/csv');
+}
+
+function getTodayKeyAura() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function renderTrends() {
@@ -606,17 +705,16 @@ async function getAiTip() {
     const tipBox = $('ai-tip-box');
     if (!tipBox) return;
 
-    let apiKey = storageGet('gemini-api-key', null);
+    const apiKey = storageGet('gemini_api_key', null);
     if (!apiKey) {
-        apiKey = prompt("Paste your Gemini API key (from aistudio.google.com/apikey). It's stored only in this browser's local storage:");
-        if (!apiKey) return;
-        storageSet('gemini-api-key', apiKey);
+        tipBox.textContent = 'Add your Gemini API key in the AI settings section above first.';
+        return;
     }
 
     tipBox.textContent = "Thinking...";
 
-    const recentExits = historyLog.slice(0, 5).map(h => `${h.date} ${h.time}`).join(', ') || 'no logged departures yet';
-    const prompt_text = `You are a supportive ADHD-friendly morning coach. My routine totals ${getTotalRoutineDuration()} minutes, goal is out the door by 7:50 AM (7:55 AM latest buffer). My last 5 logged departure times: ${recentExits}. In 2-3 short sentences, give me one specific, encouraging, actionable tip to improve my morning flow. No generic filler.`;
+    const recentExits = historyLog.slice(0, 5).map(h => `${h.date} ${h.departTime}`).join(', ') || 'no logged departures yet';
+    const prompt_text = `You are a supportive ADHD-friendly morning coach. My routine totals ${getTotalRoutineDuration()} minutes, goal is out the door by ${formatDisplayTime(timeTargets.goal)} (${formatDisplayTime(timeTargets.latest)} latest buffer), heading to ${getDestination()}. My last 5 logged departure times: ${recentExits}. In 2-3 short sentences, give me one specific, encouraging, actionable tip to improve my routine. No generic filler.`;
 
     try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`, {
@@ -638,14 +736,17 @@ async function getAiTip() {
 }
 
 function resetGeminiKey() {
-    localStorage.removeItem('gemini-api-key');
+    localStorage.removeItem('gemini_api_key');
+    const apiKeyInput = $('gemini-api-key-input');
+    if (apiKeyInput) apiKeyInput.value = '';
     const tipBox = $('ai-tip-box');
-    if (tipBox) tipBox.textContent = "API key cleared. Click 'Get AI Coaching Tip' to enter a new one.";
+    if (tipBox) tipBox.textContent = "API key cleared. Add a new one in the AI settings section above.";
 }
 
 // ---------- Init ----------
 function initApp() {
     applySettings();
+    populateAuraTimezoneSelect();
     updateClocks();
     setInterval(updateClocks, 1000);
     renderRoutine();
@@ -653,8 +754,7 @@ function initApp() {
     timeLeft = getTotalRoutineDuration() * 60;
     updateDisplay();
     renderTrends();
-
-    const goalInput = $('goal-time-input');
+    renderOccasionPatterns();
     const latestInput = $('latest-time-input');
     if (goalInput) goalInput.value = timeTargets.goal;
     if (latestInput) latestInput.value = timeTargets.latest;
