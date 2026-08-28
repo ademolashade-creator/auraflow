@@ -1,4 +1,4 @@
-const CACHE = 'aura-cache-v1';
+const CACHE = 'aura-cache-v2';
 const ASSETS = ['./index.html', './styles.css', './app.js', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -7,6 +7,11 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
+    e.waitUntil(
+        caches.keys().then((keys) =>
+            Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
+        )
+    );
     self.clients.claim();
 });
 

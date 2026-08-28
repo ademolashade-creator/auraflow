@@ -41,7 +41,10 @@ const defaultChecks = [
 let appSettings = storageGet('app-settings', { appName: 'Aura Morning Flow', darkMode: false });
 let routine = storageGet('routine', defaultRoutine);
 let nightChecks = storageGet('night-checks', defaultChecks);
-let historyLog = storageGet('departure-history', []);
+let historyLog = storageGet('departure-history', []).map((h) => (
+    h.departTime !== undefined ? h : { date: h.date, departTime: h.time, departTimestamp: null, arriveTime: null, transitMinutes: null }
+));
+let timeTargets = storageGet('aura-time-targets', { goal: '07:50', latest: '07:55' });
 
 let isEngaged = false;
 let currentStepIndex = 0;
@@ -121,7 +124,32 @@ function renderRoutine() {
             activeTaskName.textContent = currentStepIndex < routine.length ? routine[currentStepIndex].name : "✨ Core Flow Finished! Start Transit!";
         }
     }
+    const budgetInput = $('total-budget-input');
+    if (budgetInput) budgetInput.value = getTotalRoutineDuration();
     updateAdaptiveHacks();
+}
+
+function updateTotalBudget(newTotalStr) {
+    let newTotal = parseInt(newTotalStr);
+    const currentTotal = getTotalRoutineDuration();
+    if (isNaN(newTotal) || newTotal < routine.length) {
+        alert(`Total must be at least ${routine.length} minutes (1 per step).`);
+        renderRoutine();
+        return;
+    }
+    if (currentTotal === 0) return;
+
+    let assigned = 0;
+    routine.forEach((step, i) => {
+        if (i === routine.length - 1) {
+            step.duration = Math.max(1, newTotal - assigned);
+        } else {
+            const scaled = Math.max(1, Math.round((step.duration / currentTotal) * newTotal));
+            step.duration = scaled;
+            assigned += scaled;
+        }
+    });
+    saveAndReRender();
 }
 
 function renderChecks() {
@@ -243,6 +271,34 @@ function updateDisplay() {
     activeCountdown.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+function formatDisplayTime(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    let hour12 = h % 12; if (hour12 === 0) hour12 = 12;
+    return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+function parseTimeToDateToday(hhmm) {
+    const [h, m] = (hhmm || '07:50').split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+}
+
+function updateTimeTargetsLabel() {
+    const label = $('urgency-title-text');
+    if (label) label.textContent = `Goal: Out by ${formatDisplayTime(timeTargets.goal)} \u00b7 Latest ${formatDisplayTime(timeTargets.latest)}`;
+}
+
+function updateTimeTargets() {
+    const g = $('goal-time-input').value || '07:50';
+    const l = $('latest-time-input').value || '07:55';
+    timeTargets = { goal: g, latest: l };
+    storageSet('aura-time-targets', timeTargets);
+    updateTimeTargetsLabel();
+    updateUrgencyBanner();
+}
+
 function updateUrgencyBanner() {
     const statusText = $('urgency-status-text');
     if (!statusText) return;
@@ -265,15 +321,15 @@ function updateUrgencyBanner() {
     const projectedExit = new Date(now.getTime() + remainingSecs * 1000);
     const exitTimeStr = projectedExit.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const goalTime = new Date(); goalTime.setHours(7, 50, 0, 0);
-    const latestTime = new Date(); latestTime.setHours(7, 55, 0, 0);
+    const goalTime = parseTimeToDateToday(timeTargets.goal);
+    const latestTime = parseTimeToDateToday(timeTargets.latest);
 
     if (projectedExit <= goalTime) {
-        statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color:#0d8a52;">${exitTimeStr}</span> (On track for 7:50 AM! 🎉)`;
+        statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color:#0d8a52;">${exitTimeStr}</span> (On track! 🎉)`;
     } else if (projectedExit <= latestTime) {
-        statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color:var(--amber);">${exitTimeStr}</span> (In your 5-min buffer — still fine.)`;
+        statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color:var(--amber);">${exitTimeStr}</span> (In your buffer \u2014 still fine.)`;
     } else {
-        statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color: var(--cherry-red);">${exitTimeStr}</span> (⚠️ Past 7:55 AM latest!)`;
+        statusText.innerHTML = `Routine Left: <strong>${remainingMins} mins</strong> | Projected Exit: <span style="color: var(--cherry-red);">${exitTimeStr}</span> (\u26a0\ufe0f Past your latest time!)`;
     }
 }
 
@@ -393,13 +449,32 @@ function updateAdaptiveHacks() {
 
 function logDeparture() {
     const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const dateString = now.toLocaleDateString();
-    historyLog.unshift({ date: dateString, time: timeString });
+    historyLog.unshift({
+        date: now.toLocaleDateString(),
+        departTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        departTimestamp: now.getTime(),
+        arriveTime: null,
+        transitMinutes: null
+    });
     if (historyLog.length > 10) historyLog.pop();
     storageSet('departure-history', historyLog);
     const box = $('door-result-box');
-    if (box) box.textContent = `🚪 Threshold crossed at ${timeString}. Logged and secured!`;
+    if (box) box.textContent = `🚪 Threshold crossed at ${historyLog[0].departTime}. Logged and secured!`;
+    renderTrends();
+}
+
+function logArrival() {
+    const openEntry = historyLog.find((h) => h.arriveTime === null && h.departTimestamp);
+    const box = $('door-result-box');
+    if (!openEntry) {
+        if (box) box.textContent = "No open departure to match this arrival to \u2014 log your departure first.";
+        return;
+    }
+    const now = new Date();
+    openEntry.arriveTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    openEntry.transitMinutes = Math.max(1, Math.round((now.getTime() - openEntry.departTimestamp) / 60000));
+    storageSet('departure-history', historyLog);
+    if (box) box.textContent = `🏁 Arrived at ${openEntry.arriveTime} \u2014 ${openEntry.transitMinutes} min transit.`;
     renderTrends();
 }
 
@@ -410,7 +485,14 @@ function renderTrends() {
         logBox.textContent = "No departures logged yet. Hit the threshold button when you walk out!";
         return;
     }
-    logBox.innerHTML = historyLog.map(h => `<div>📅 <strong>${h.date}</strong> — Exited at <em>${h.time}</em></div>`).join('');
+    logBox.innerHTML = historyLog.map((h) => {
+        if (h.arriveTime) {
+            const diff = h.transitMinutes - 10;
+            const diffLabel = diff <= 0 ? `${Math.abs(diff)} min under your 10-min estimate` : `${diff} min over your 10-min estimate`;
+            return `<div>📅 <strong>${h.date}</strong> — Left ${h.departTime}, arrived ${h.arriveTime} (${h.transitMinutes} min, ${diffLabel})</div>`;
+        }
+        return `<div>📅 <strong>${h.date}</strong> — Left ${h.departTime} <em>(transit in progress)</em></div>`;
+    }).join('');
 }
 
 // ---------- Optional: AI coaching tip via Gemini API (full dashboard only) ----------
@@ -465,6 +547,12 @@ function initApp() {
     timeLeft = getTotalRoutineDuration() * 60;
     updateDisplay();
     renderTrends();
+
+    const goalInput = $('goal-time-input');
+    const latestInput = $('latest-time-input');
+    if (goalInput) goalInput.value = timeTargets.goal;
+    if (latestInput) latestInput.value = timeTargets.latest;
+    updateTimeTargetsLabel();
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
